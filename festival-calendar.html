@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Год в ритуалах — календарь фестивалей народов мира</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,600;9..144,0,900;9..144,1,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --ink:#14162b; --ink-2:#1d2039; --bone:#ece3d2; --bone-dim:#c9c0ae;
+    --line:#33365a; --muted:#8a8fb5;
+    --west:#cf9130; --central:#a7743f; --south:#3f9174; --east:#4f86c6; --oceania:#b0463f;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{margin:0;background:var(--ink);color:var(--bone);font-family:"Inter",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:820px;margin:0 auto;padding:0 18px 90px}
+  code{font-family:"JetBrains Mono",monospace;font-size:.9em}
+
+  header.top{padding:40px 0 18px}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--west);margin:0 0 14px}
+  h1{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(34px,8.5vw,62px);line-height:.96;letter-spacing:-.01em;margin:0}
+  h1 em{font-style:italic;color:var(--west);font-weight:600}
+  .lede{color:var(--muted);max-width:54ch;margin:16px 0 0;font-size:15px}
+
+  /* переключатель видов */
+  .viewswitch{position:sticky;top:0;z-index:40;background:linear-gradient(var(--ink) 78%,transparent);padding:12px 0 8px;display:flex;gap:7px}
+  .vbtn{flex:1;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim);background:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:10px 8px;cursor:pointer;transition:.15s}
+  .vbtn[aria-selected="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone)}
+  .vbtn:focus-visible{outline:2px solid var(--west);outline-offset:2px}
+
+  /* фильтры */
+  .controls{position:sticky;top:56px;z-index:30;background:linear-gradient(var(--ink) 80%,transparent);padding:8px 0 14px}
+  .filter-group{margin-bottom:9px}
+  .filter-label{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .chips{display:flex;flex-wrap:nowrap;gap:7px;overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;font-size:13px;font-weight:500;color:var(--bone-dim);background:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:7px 13px;cursor:pointer;white-space:nowrap;transition:.15s;font-family:inherit}
+  .chip:hover{border-color:var(--west)}
+  .chip:focus-visible{outline:2px solid var(--west);outline-offset:2px}
+  .chip[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone)}
+  .chip .rdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .reset{background:none;border:none;color:var(--muted);cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:4px 0}
+  .reset:hover{color:var(--west)}
+  .count{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);float:right;padding-top:6px}
+
+  .month-block{position:relative;padding-left:44px;margin-top:24px}
+  .month-block::before{content:"";position:absolute;left:15px;top:8px;bottom:-24px;width:2px;background:var(--line)}
+  .month-block:last-child::before{height:34px;bottom:auto}
+  .node{position:absolute;left:6px;top:4px;width:20px;height:20px;border-radius:50%;background:var(--ink);border:2px solid var(--west);display:flex;align-items:center;justify-content:center}
+  .node span{width:6px;height:6px;border-radius:50%;background:var(--west)}
+  .month-name{font-family:"Fraunces",serif;font-weight:600;font-style:italic;font-size:26px;margin:0 0 14px;line-height:1}
+
+  .card{display:grid;grid-template-columns:104px 1fr;gap:0;background:var(--bone);color:var(--ink);border-radius:13px;overflow:hidden;margin-bottom:12px;border-left:5px solid var(--accent);cursor:pointer;box-shadow:0 10px 28px -20px rgba(0,0,0,.75);transition:transform .12s}
+  .card:hover{transform:translateY(-2px)}
+  .card:focus-visible{outline:2px solid var(--west);outline-offset:2px}
+  .thumb{position:relative;background-size:cover;background-position:center}
+  .thumb .em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+  .card-body{padding:12px 14px 13px;min-width:0}
+  .card-flag{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:#6a6252;margin:0 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-title{font-family:"Fraunces",serif;font-weight:600;font-size:20px;line-height:1.02;margin:0 0 3px}
+  .card-date{font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:700;color:#4a4638}
+  .card-date .moon{color:var(--oceania)}
+  .card-open{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-top:8px;display:inline-block}
+
+  /* колесо года */
+  #view-wheel{display:none;padding-top:6px}
+  #view-wheel.on{display:block}
+  .wheel-intro{color:var(--muted);font-size:14px;margin:2px 0 8px;max-width:60ch}
+  .wheel-wrap{display:flex;justify-content:center}
+  svg.wheel{width:100%;max-width:440px;height:auto}
+  svg.wheel text{font-family:"JetBrains Mono",monospace;fill:var(--muted)}
+  svg.wheel .mlabel{font-size:11px;letter-spacing:.05em}
+  svg.wheel .center-l{font-size:9px;letter-spacing:.2em;fill:var(--bone-dim)}
+  svg.wheel .dot{cursor:pointer;transition:.12s}
+  svg.wheel .dot:hover{transform:scale(1.25);transform-origin:center;transform-box:fill-box}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:14px 0 0}
+  .legend span{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--bone-dim);display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+  /* карта */
+  #view-map{display:none;padding-top:10px}
+  #view-map.on{display:block}
+  #map{height:420px;border-radius:14px;border:1px solid var(--line);background:var(--ink-2);overflow:hidden}
+  #map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.92) saturate(.75)}
+  .leaflet-container{background:var(--ink-2);font-family:"Inter",sans-serif}
+  .map-note{color:var(--muted);font-size:12.5px;margin:12px 0 0}
+
+  #view-list{display:none}
+  #view-list.on{display:block}
+
+  footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+  footer b{color:var(--bone-dim);font-weight:600}
+  .empty{color:var(--muted);text-align:center;padding:50px 0;font-style:italic}
+
+  /* детальная страница */
+  .detail{position:fixed;inset:0;z-index:100;background:var(--ink);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
+  .detail.open{display:block}
+  .d-inner{max-width:820px;margin:0 auto;padding:0 18px 90px}
+  .d-bar{position:sticky;top:0;z-index:10;background:linear-gradient(var(--ink) 82%,transparent);padding:16px 0 12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .back{display:inline-flex;align-items:center;gap:8px;background:var(--ink-2);border:1px solid var(--line);color:var(--bone);border-radius:999px;padding:9px 15px 9px 12px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
+  .back:hover{border-color:var(--west)}
+  .back:focus-visible{outline:2px solid var(--west);outline-offset:2px}
+  .d-region{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);text-align:right}
+  .d-region .rdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .d-flag{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin:6px 0 8px}
+  .d-title{font-family:"Fraunces",serif;font-weight:900;font-size:clamp(32px,7.5vw,52px);line-height:.98;letter-spacing:-.01em;margin:0}
+  .d-local{font-family:"Fraunces",serif;font-style:italic;font-weight:600;color:var(--bone-dim);font-size:19px;margin:6px 0 0}
+  .d-facts{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 4px}
+  .fact{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--bone);background:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+  .fact .moon{color:var(--oceania)}
+  .fact b{color:var(--muted);font-weight:500}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:22px 0 6px}
+  .shot{aspect-ratio:4/3;border-radius:12px;overflow:hidden;position:relative;display:flex;align-items:flex-end;background-size:cover;background-position:center}
+  .shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:1}
+  .shot .em{position:absolute;top:12px;left:14px;font-size:30px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));z-index:0}
+  .shot .cap{position:relative;z-index:2;font-family:"JetBrains Mono",monospace;font-size:10px;color:rgba(255,255,255,.96);background:rgba(0,0,0,.42);backdrop-filter:blur(2px);padding:6px 9px;width:100%;letter-spacing:.02em}
+  section.blk{margin-top:30px}
+  .blk-eye{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--west);margin:0 0 10px}
+  .blk p{font-size:15.5px;color:var(--bone);margin:0 0 12px;max-width:66ch}
+  .blk ul{margin:0;padding:0;list-style:none;max-width:66ch}
+  .blk li{position:relative;padding-left:20px;margin-bottom:9px;font-size:15px;color:var(--bone)}
+  .blk li::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .prac{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:6px}
+  .prac .cell{background:var(--ink);padding:13px 15px}
+  .prac dt{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  .prac dd{margin:0;font-size:14px;color:var(--bone)}
+  .lvl{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .ok{background:var(--south)} .warn{background:var(--west)} .no{background:var(--oceania)}
+  .ethno{margin-top:28px;background:var(--ink-2);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:18px 20px}
+  .ethno .blk-eye{color:var(--bone-dim)}
+  .ethno p{font-size:15px;font-style:italic;color:var(--bone);margin:0;max-width:66ch}
+  .credit{margin-top:18px;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted)}
+  .credit a{color:var(--muted)}
+
+  @media (max-width:440px){ .prac{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">Полевой календарь · 40 праздников</p>
+    <h1>Год в <em>ритуалах</em><br>народов мира</h1>
+    <p class="lede">Тапни на фестиваль — откроется полный разбор: что происходит, откуда обычай, кого снимать, как попасть и можно ли снимать.</p>
+  </header>
+
+  <div class="viewswitch" role="tablist">
+    <button class="vbtn" role="tab" aria-selected="true"  data-view="list">Список</button>
+    <button class="vbtn" role="tab" aria-selected="false" data-view="wheel">Колесо года</button>
+    <button class="vbtn" role="tab" aria-selected="false" data-view="map">Карта</button>
+  </div>
+
+  <!-- СПИСОК -->
+  <div id="view-list" class="on">
+    <div class="controls">
+      <span class="count" id="count"></span>
+      <div class="filter-group"><p class="filter-label">Месяц</p><div class="chips" id="f-month"></div></div>
+      <div class="filter-group"><p class="filter-label">Регион</p><div class="chips" id="f-region"></div></div>
+      <button class="reset" id="reset">↺ Сбросить</button>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <!-- КОЛЕСО ГОДА -->
+  <div id="view-wheel">
+    <p class="wheel-intro">Весь год по кругу: январь наверху, дальше по часовой. Цвет точки — регион, тап открывает фестиваль. Сразу видно сезонность — как праздники группируются к концу дождей и урожаю.</p>
+    <div class="wheel-wrap"><svg class="wheel" id="wheel" viewBox="0 0 400 400" role="img" aria-label="Колесо года с фестивалями"></svg></div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <!-- КАРТА -->
+  <div id="view-map">
+    <div id="map"></div>
+    <p class="map-note">Пины по цвету региона — тапни, чтобы открыть фестиваль. Если плитки карты не прогрузились, проверь доступ к сети в настройках.</p>
+  </div>
+
+  <footer>
+    <b>40 праздников из твоего списка.</b> Плавающие даты помечены <span style="color:var(--oceania)">☾</span> — проверяй на год поездки (особенно лунные, ямс-фестивали и шоу ПНГ, чьи даты смещаются). Фото пока стоят у 10 фестивалей (Wikimedia Commons, CC BY / CC BY-SA — при публикации указывай авторов, ссылка есть в карточке); у остальных — цветные заглушки, добавим снимки следующим проходом. Восточная Африка пока пустая — туда лягут Эфиопия и Восточная Африка, когда решишь добавить.
+  </footer>
+</div>
+
+<!-- детальная страница -->
+<div class="detail" id="detail" role="dialog" aria-modal="true" aria-label="Страница фестиваля">
+  <div class="d-inner">
+    <div class="d-bar">
+      <button class="back" id="back">← Назад к календарю</button>
+      <span class="d-region" id="d-region"></span>
+    </div>
+    <div id="d-content"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const REGIONS = {
+  west:    {name:"Западная Африка",    v:"--west"},
+  central: {name:"Центральная Африка", v:"--central"},
+  south:   {name:"Южная Африка",       v:"--south"},
+  east:    {name:"Восточная Африка",   v:"--east"},
+  oceania: {name:"Океания",            v:"--oceania"},
+};
+const MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const MON3=["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+const cssv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const URLMAP = {"10%20Janvier%202023%2C%20F%C3%AAte%20de%20vodoun%20%C3%A0%20Ouidah%2005.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/10_Janvier_2023%2C_F%C3%AAte_de_vodoun_%C3%A0_Ouidah_05.jpg/640px-10_Janvier_2023%2C_F%C3%AAte_de_vodoun_%C3%A0_Ouidah_05.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/4/41/10_Janvier_2023%2C_F%C3%AAte_de_vodoun_%C3%A0_Ouidah_05.jpg"}, "Danse%20de%20Zangb%C3%AAto%20au%20B%C3%A9nin.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Danse_de_Zangb%C3%AAto_au_B%C3%A9nin.jpg/640px-Danse_de_Zangb%C3%AAto_au_B%C3%A9nin.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Danse_de_Zangb%C3%AAto_au_B%C3%A9nin.jpg"}, "Ncwala%20Ceremony%20Zambia%2004.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Ncwala_Ceremony_Zambia_04.jpg/640px-Ncwala_Ceremony_Zambia_04.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Ncwala_Ceremony_Zambia_04.jpg"}, "Ncwala%20Ceremony%20Zambia%2003.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Ncwala_Ceremony_Zambia_03.jpg/640px-Ncwala_Ceremony_Zambia_03.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Ncwala_Ceremony_Zambia_03.jpg"}, "Leaf%20masks%2C%20Bwa%20village%20of%20Boni%2C%202006.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Leaf_masks%2C_Bwa_village_of_Boni%2C_2006.jpg/640px-Leaf_masks%2C_Bwa_village_of_Boni%2C_2006.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/8/85/Leaf_masks%2C_Bwa_village_of_Boni%2C_2006.jpg"}, "Nalikwanda.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Nalikwanda.jpg/640px-Nalikwanda.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/1/10/Nalikwanda.jpg"}, "Kuomboka%20ceremony%20in%20Zambia%2008.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Kuomboka_ceremony_in_Zambia_08.jpg/640px-Kuomboka_ceremony_in_Zambia_08.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Kuomboka_ceremony_in_Zambia_08.jpg"}, "Umutomboko%20ceremony.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Umutomboko_ceremony.jpg/640px-Umutomboko_ceremony.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/e/ed/Umutomboko_ceremony.jpg"}, "Exquisite%20hairstyle%20at%20Osun%20Osogbo%20Festival%202025.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Exquisite_hairstyle_at_Osun_Osogbo_Festival_2025.jpg/640px-Exquisite_hairstyle_at_Osun_Osogbo_Festival_2025.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/4/44/Exquisite_hairstyle_at_Osun_Osogbo_Festival_2025.jpg"}, "Osun%20Osogbo%20Sacred%20Grove%202.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Osun_Osogbo_Sacred_Grove_2.jpg/640px-Osun_Osogbo_Sacred_Grove_2.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Osun_Osogbo_Sacred_Grove_2.jpg"}, "Tribal%20crocodile%20scarification%2C%20Sepik%20River%2C%20Papua%20New%20Guinea.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Tribal_crocodile_scarification%2C_Sepik_River%2C_Papua_New_Guinea.jpg/640px-Tribal_crocodile_scarification%2C_Sepik_River%2C_Papua_New_Guinea.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/2/27/Tribal_crocodile_scarification%2C_Sepik_River%2C_Papua_New_Guinea.jpg"}, "Men%27s%20house%20in%20Tambunum%20village%2C%20Sepik%20River%2C%20Papua%20New%20Guinea%20%28rear%20view%29.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Men%27s_house_in_Tambunum_village%2C_Sepik_River%2C_Papua_New_Guinea_%28rear_view%29.jpg/640px-Men%27s_house_in_Tambunum_village%2C_Sepik_River%2C_Papua_New_Guinea_%28rear_view%29.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Men%27s_house_in_Tambunum_village%2C_Sepik_River%2C_Papua_New_Guinea_%28rear_view%29.jpg"}, "Wodaabe%20during%20Gerewol%2C%20Cure%20Salee%2C%20In-Gall%2C%20Niger%20%2815380276990%29.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Wodaabe_during_Gerewol%2C_Cure_Salee%2C_In-Gall%2C_Niger_%2815380276990%29.jpg/640px-Wodaabe_during_Gerewol%2C_Cure_Salee%2C_In-Gall%2C_Niger_%2815380276990%29.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/1/13/Wodaabe_during_Gerewol%2C_Cure_Salee%2C_In-Gall%2C_Niger_%2815380276990%29.jpg"}, "Asaro%20Mud%20Men%20%2848885957917%29.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Asaro_Mud_Men_%2848885957917%29.jpg/640px-Asaro_Mud_Men_%2848885957917%29.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/7/70/Asaro_Mud_Men_%2848885957917%29.jpg"}, "September%202016%20Durbar%20in%20Kano%20-%20Arrival%20of%20the%20Emir.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/September_2016_Durbar_in_Kano_-_Arrival_of_the_Emir.jpg/640px-September_2016_Durbar_in_Kano_-_Arrival_of_the_Emir.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/3/34/September_2016_Durbar_in_Kano_-_Arrival_of_the_Emir.jpg"}, "The%20Horse%20men%20of%20the%20Sahara.jpg": {"t": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/The_Horse_men_of_the_Sahara.jpg/640px-The_Horse_men_of_the_Sahara.jpg", "f": "https://upload.wikimedia.org/wikipedia/commons/d/d0/The_Horse_men_of_the_Sahara.jpg"}};
+const img = (name,cap)=>{ const m=URLMAP[name]||{}; return {u:m.t||"", full:m.f||"", c:cap, src:"https://commons.wikimedia.org/wiki/File:"+name}; };
+
+const DATA = [
+  {
+    month:1, floating:false, region:"west", ll:[6.36,2.09], flag:"🇧🇯 Бенин · фон, эве", place:"Уида (побережье)",
+    title:"Фестиваль Вуду", local:"Fête du Vodoun", emoji:"🔥",
+    date:"10 января", duration:"главный день + события вокруг ~3–4 дня", season:"сухой сезон, харматтан (пыльно)",
+    images:[
+      img("10%20Janvier%202023%2C%20F%C3%AAte%20de%20vodoun%20%C3%A0%20Ouidah%2005.jpg","Фестиваль вуду, Уида, 10 января"),
+      img("Danse%20de%20Zangb%C3%AAto%20au%20B%C3%A9nin.jpg","Zangbeto — кружащийся дух-страж")
+    ],
+    essence:"Национальный день вуду — исконной религии Гвинейского залива. Эпицентр — Уида, бывший невольничий порт: сакральное и национальное сливаются в один публичный праздник.",
+    happens:["Церемонии у Храма питонов и шествие к «Вратам невозврата» на пляже.","Жрецы призывают вуду (лоа); возлияния джином и пальмовым маслом, жертвы (куры, козы).","Zangbeto — «ночные стражи», кружащиеся стога из соломы, внутри которых по поверью нет человека.","Egungun — духи предков в вихревых костюмах; к ним нельзя прикасаться.","Моменты транса под барабаны, на рассвете — выход к океану."],
+    why:"Вуду — родная религия фон и эве; в 1990-х праздник признан государственным как часть национальной идентичности и памяти о работорговле.",
+    watch:["Egungun в вихре ткани","Кружащиеся Zangbeto","Момент транса","Пляж и «Врата невозврата» на рассвете"],
+    prac:{access:["ok","Свободно, публичный праздник"],guide:["warn","Гид полезен для доступа в «закрытые» дворы"],photo:["warn","В целом можно; в транс и к Egungun — не лезть"],spots:["","Egungun в движении, Zangbeto, пляж на рассвете"],crowds:["","Событие известное, туристов много"],forwho:["","Первый мощный вход в мир вуду"]},
+    ethno:"Редкий случай, когда африканская традиционная религия — не полузакрытый обряд, а публичный государственный праздник. Интересно снимать грань между сакральным и национальным перформансом."
+  },
+  {
+    month:2, floating:false, region:"south", ll:[-13.64,32.65], flag:"🇿🇲 Замбия · нгони", place:"Мтенгулени, близ Чипаты",
+    title:"N’cwala", local:"N’cwala", emoji:"🌾",
+    date:"24 февраля", duration:"1 день + подготовка", season:"сезон дождей (зелень, но грязь)",
+    images:[
+      img("Ncwala%20Ceremony%20Zambia%2004.jpg","Воины нгони на N’cwala"),
+      img("Ncwala%20Ceremony%20Zambia%2003.jpg","Боевой танец ingoma")
+    ],
+    essence:"Праздник первого урожая нгони — потомков зулусов, ушедших на север во время mfecane в XIX веке. Благодарение предкам и утверждение воинской идентичности.",
+    happens:["Группы воинов ingoma в шкурах, со щитами и копьями, соревнуются в боевом танце.","Вождь Mpezeni торжественно пробует первые плоды нового урожая.","По традиции — жертвенный бык; исторически воины пили его кровь.","Барабаны, пение, реконструкция зулусского воинского духа."],
+    why:"Нгони — ветвь зулусов, мигрировавшая из юга Африки при разгроме и рассеянии народов (mfecane). Праздник закрепляет связь с этим исходом.",
+    watch:["Ряды воинов ingoma","Прыжковый боевой танец","Вход вождя Mpezeni","Ритуальное вкушение первого зерна"],
+    prac:{access:["ok","Свободно"],guide:["ok","Гид не обязателен"],photo:["ok","Свободно"],spots:["","Стена воинов, прыжок в танце, портреты"],crowds:["","Туристов мало, очень аутентично"],forwho:["","Зулусская воинская культура вне ЮАР"]},
+    ethno:"Живая нить к mfecane и зулусской диаспоре: одна из немногих точек, где «зулусское» продолжается вне Южной Африки."
+  },
+  {
+    month:2, floating:true, region:"west", ll:[12.46,-3.46], flag:"🇧🇫 Буркина-Фасо · маски региона", place:"Дедугу",
+    title:"FESTIMA", local:"Festival International des Masques", emoji:"🎭",
+    date:"Конец февраля · раз в 2 года ☾", duration:"~неделя", season:"сухой сезон",
+    images:[ img("Leaf%20masks%2C%20Bwa%20village%20of%20Boni%2C%202006.jpg","Листовые маски Bwa в танце") ],
+    essence:"Крупнейший смотр традиционных масок Западной Африки. Раз в два года в Дедугу съезжаются маски из нескольких стран — как ответ на угрозу исчезновения и коммерциализации традиции.",
+    happens:["Маски из волокна, листьев, дерева и ткани из Буркина-Фасо, Мали, Кот-д’Ивуара, Сенегала, Того, Бенина.","Каждая маска — дух (бык, антилопа, птица, лесной дух), выходит танцевать под барабаны.","Дневные и ночные выходы, облака пыли, гул барабанов.","Смысл — сохранить масочные традиции живыми, а не музейными."],
+    why:"Маска у народов вольта — посредник между людьми и духами предков и природы. FESTIMA защищает эту роль от превращения масок в сувенир.",
+    watch:["Волоконные маски-«копны» в вихре","Звериные маски","Ходулисты","Пыль против солнца"],
+    prac:{access:["ok","Свободно, символический билет"],guide:["ok","Гид не обязателен"],photo:["warn","Снимать можно, но к маскам не приближаться"],spots:["","Маска в вихре против света, пыль, барабанщики"],crowds:["","Местные + немного туристов"],forwho:["","Сравнить масочные культуры многих народов за раз"]},
+    ethno:"Уникальная возможность увидеть маски разных народов рядом и сопоставить их — то, что в жизни разбросано по деревням и странам."
+  },
+  {
+    month:4, floating:true, region:"south", ll:[-15.28,23.12], flag:"🇿🇲 Замбия · лози", place:"Баротселенд: Леалуи → Лимулунга",
+    title:"Kuomboka", local:"Kuomboka — «выйти из воды»", emoji:"👑",
+    date:"Апрель · плавающая ☾ (конец дождей)", duration:"1 день + вечерний бал", season:"конец сезона дождей",
+    images:[
+      img("Nalikwanda.jpg","Ладья Nalikwanda со слоном"),
+      img("Kuomboka%20ceremony%20in%20Zambia%2008.jpg","Церемония Kuomboka на воде")
+    ],
+    essence:"Переселение короля лози (Litunga) с затопленной поймы Замбези на возвышенность. Одна из красивейших водных королевских церемоний Африки — и дата её «плавает» буквально по уровню воды.",
+    happens:["Королевскую ладью Nalikwanda (чёрно-белую) гребут десятки гребцов в алых беретах.","На носу — модель слона, уши которого двигаются; барабан Maoma созывает гребцов.","Король плывёт из низинного Леалуи в возвышенную Лимулунгу во главе флотилии.","Народ на берегах, песни; вечером — королевский бал."],
+    why:"Сезонный разлив поймы вынуждает двор переезжать. Ритуал закрепляет власть Litunga и годовой цикл воды.",
+    watch:["Слон на носу Nalikwanda","Гребцы в алом","Момент отплытия","Прибытие в Лимулунгу"],
+    prac:{access:["warn","Свободно, НО дата зависит от воды — в засуху сдвигают/отменяют"],guide:["warn","Ехать с запасом дней; уточнять дату заранее"],photo:["ok","Свободно"],spots:["","Ладья с воды и с берега, слон, гребцы"],crowds:["","Много местных, туристы есть"],forwho:["","Водная королевская церемония высшего класса"]},
+    ethno:"Власть, вода и календарь слиты в одном ритуале. Дата не задана человеком — её диктует река, что само по себе редкость."
+  },
+  {
+    month:7, floating:false, region:"south", ll:[-9.83,28.75], flag:"🇿🇲 Замбия · лунда", place:"Мвансабомбве, Кавамбва",
+    title:"Umutomboko", local:"Umutomboko — «пересечение»", emoji:"⚔️",
+    date:"Последние выходные июля", duration:"2 дня", season:"сухой, прохладный (лучшее время)",
+    images:[ img("Umutomboko%20ceremony.jpg","Церемония Umutomboko, лунда") ],
+    essence:"Праздник лунда во главе с вождём Mwata Kazembe — в память об исходе из империи Луба-Лунда и переходе реки Луапула. Живая церемония центральноафриканской монархии на земле Замбии.",
+    happens:["Двухдневные обряды, королевские регалии и барабаны mondo.","Кульминация — вождь исполняет танец Mutomboko с двумя мечами, «рассекая» воздух на четыре стороны.","По ритуалу вождь не должен касаться земли — символ власти выше народа.","Процессии, песни, воспроизведение маршрута предков."],
+    why:"Увековечивает миграцию лунда с империи Луба-Лунда и основание царства Казембе на реке Луапула.",
+    watch:["Танец Mwata с мечами","Королевский выход","Барабаны mondo","Регалии двора"],
+    prac:{access:["ok","Свободно"],guide:["ok","Гид желателен для контекста"],photo:["ok","Свободно"],spots:["","Танец с мечами, вождь в регалиях, барабанщики"],crowds:["","Туристов мало"],forwho:["","Живая история империи Лунда"]},
+    ethno:"Одна из немногих сохранившихся церемоний центральноафриканской монархии — власть Лунда, «переехавшая» вместе с народом через границы."
+  },
+  {
+    month:8, floating:true, region:"west", ll:[7.75,4.55], flag:"🇳🇬 Нигерия · йоруба", place:"Осогбо, штат Осун",
+    title:"Osun-Osogbo", local:"Osun-Osogbo Festival", emoji:"💧",
+    date:"Август · плавающая ☾", duration:"~2 недели, финал — 1 день", season:"сезон дождей",
+    images:[
+      img("Exquisite%20hairstyle%20at%20Osun%20Osogbo%20Festival%202025.jpg","Причёска на фестивале Осун-Осогбо"),
+      img("Osun%20Osogbo%20Sacred%20Grove%202.jpg","Священная роща Осун (ЮНЕСКО)")
+    ],
+    essence:"Двухнедельный священный фестиваль йоруба в честь речной богини Осун — в её роще под Осогбо, объекте всемирного наследия ЮНЕСКО с легендарными скульптурами.",
+    happens:["Обряды открываются очищением города (Iwopopo) и зажжением священного светильника.","Кульминация — дева-жрица Arugbá несёт на голове калебас с жертвами к реке.","За ней — король (Ataoja), жрицы и десятки тысяч верующих и паломников диаспоры.","В роще — святилища и скульптуры, наследие художницы Сюзанны Венгер."],
+    why:"По преданию, предки Осогбо заключили с богиней Осун договор: защита и плодородие в обмен на ежегодные подношения у реки.",
+    watch:["Arugbá с калебасом (ей нельзя оступиться)","Процессия к реке","Скульптуры рощи","Толпа у воды"],
+    prac:{access:["warn","Процессия открыта; сокровенные обряды — для посвящённых"],guide:["warn","Гид помогает с доступом и этикетом"],photo:["warn","У реки — деликатно, спрашивать"],spots:["","Arugbá, толпа у воды, скульптуры рощи"],crowds:["","Огромные, включая диаспору"],forwho:["","Живой культ ориша + мировое искусство рощи"]},
+    ethno:"Тройной синкретизм: традиция ориша, наследие ЮНЕСКО и авторское искусство Венгер — редкое наслоение сакрального и художественного."
+  },
+  {
+    month:8, floating:false, region:"oceania", ll:[-4.22,142.83], flag:"🇵🇬 Папуа — Новая Гвинея · народы Сепика", place:"Амбунти, река Сепик",
+    title:"Crocodile Festival", local:"Sepik River Crocodile Festival", emoji:"🐊",
+    date:"Начало августа", duration:"2–3 дня", season:"сухой",
+    images:[
+      img("Tribal%20crocodile%20scarification%2C%20Sepik%20River%2C%20Papua%20New%20Guinea.jpg","Шрамы-«крокодилья кожа»"),
+      img("Men%27s%20house%20in%20Tambunum%20village%2C%20Sepik%20River%2C%20Papua%20New%20Guinea%20%28rear%20view%29.jpg","Дом духов, деревня Тамбунум")
+    ],
+    essence:"Фестиваль народов реки Сепик, посвящённый культу крокодила и мужской инициации. Один из самых сильных обрядов посвящения на планете.",
+    happens:["Группы sing-sing с разных участков реки танцуют и поют.","Показ ритуального шрамирования: надрезами создают рельеф «крокодильей кожи».","Резные каноэ, маски, флейты; крокодил — тотемный предок.","Сам обряд инициации проходит в «доме духов» (tambaran) и закрыт."],
+    why:"По мифу народы Сепика произошли от крокодила; шрамы означают, что «крокодил проглотил юношу и выплюнул мужчиной».",
+    watch:["Спины со шрамами-чешуёй","sing-sing групп","Гонки резных каноэ","Флейты и маски"],
+    prac:{access:["warn","Открыт, но логистика тяжёлая: перелёт в Вевак + лодка"],guide:["no","Тур/гид фактически обязателен"],photo:["ok","На фестивале свободно (сам обряд — закрыт)"],spots:["","Шрамы крупным планом, каноэ, раскраска тел"],crowds:["","Мало туристов, глубинка"],forwho:["","Скарификация Сепика без нарушения тайного обряда"]},
+    ethno:"Редкий этичный способ увидеть культуру скарификации Сепика: показывают результат инициации, не вскрывая закрытый ритуал."
+  },
+  {
+    month:9, floating:true, region:"west", ll:[16.78,6.93], flag:"🇳🇪 Нигер · водаабе (фульбе)", place:"близ Ин-Галля (Cure Salée)",
+    title:"Gerewol", local:"Gerewol", emoji:"✨",
+    date:"Сентябрь · плавающая ☾ (конец дождей)", duration:"несколько дней сбора", season:"сразу после дождей",
+    images:[ img("Wodaabe%20during%20Gerewol%2C%20Cure%20Salee%2C%20In-Gall%2C%20Niger%20%2815380276990%29.jpg","Танцоры Yaake, водаабе") ],
+    essence:"Брачный конкурс красоты мужчин-водаабе — кочевых фульбе — на празднике окончания дождей Cure Salée. Один из самых визуально сильных обрядов Сахеля.",
+    happens:["Мужчины часами наряжаются: охра на лице, чёрным подведены губы и веки — чтобы белки глаз и зубы сверкали.","В танце Yaake стоят рядами, тянутся вверх, закатывают глаза и скалят зубы.","Женщины-судьи выбирают самых красивых и харизматичных.","Параллельно — танец Ruume; ценятся красота, обаяние и выносливость."],
+    why:"У водаабе красота и обаяние — социальный капитал. Cure Salée — ежегодный сбор кочевников на солёных пастбищах после дождей.",
+    watch:["Ряд танцоров Yaake","Крупные лица: глаза и зубы","Момент выбора женщинами","Кочевой лагерь"],
+    prac:{access:["no","Сложно: Сахель, безопасность переменная, кочевье"],guide:["no","Только с проверенным оператором/гидом"],photo:["warn","Деликатно, спрашивать; водаабе в целом открыты"],spots:["","Портреты в танце, ряд танцоров, гримасы"],crowds:["","Труднодоступно, туристов единицы"],forwho:["","Уникальная «мужская» эстетика и кочевая культура"]},
+    ethno:"Инверсия привычного: в конкурсе красоты выступают мужчины, а выбирают женщины. Перед поездкой обязательно проверять безопасность региона."
+  },
+  {
+    month:9, floating:false, region:"oceania", ll:[-6.08,145.39], flag:"🇵🇬 Папуа — Новая Гвинея · горные племена", place:"Гарока, Восточное нагорье",
+    title:"Goroka Show", local:"Goroka Show", emoji:"🪶",
+    date:"Середина сентября (уикенд Дня независимости)", duration:"2–3 дня", season:"сухой",
+    images:[ img("Asaro%20Mud%20Men%20%2848885957917%29.jpg","Грязевые люди Asaro") ],
+    essence:"Крупнейший sing-sing нагорья: сто с лишним племён в церемониальном убранстве на стадионе Гароки. Самый лёгкий вход в «дикую» этнографию Меланезии и рай для фотографа.",
+    happens:["Сотни групп выступают с песнями-плясками в полном убранстве.","Уборы — перья райских птиц, раковины kina, глина, охра, волокна.","Знаменитые «грязевые люди» Asaro в белой глине и глиняных масках.","Skeleton dancers, парики-wig men, ярмарка ремёсел."],
+    why:"Начинался как колониальный «show» в 1950-х, а стал главным смотром идентичности горцев; приурочен ко Дню независимости (16 сентября).",
+    watch:["Грязевые люди Asaro","Уборы из райских птиц","Skeleton men","Портреты в убранстве"],
+    prac:{access:["ok","Свободно, по билету — самый доступный из «диких»"],guide:["ok","Можно самостоятельно; тур упрощает жильё"],photo:["ok","Свободно, идеально для портретов"],spots:["","Портреты крупно, Asaro, ряды в уборах"],crowds:["","Туристы + местные; убранство настоящее"],forwho:["","Максимум разнообразия горных культур за раз"]},
+    ethno:"Смотр-компромисс между перформансом для зрителя и подлинной регалией — идеальная база, с которой удобно снимать и строить дальнейший маршрут."
+  },
+  {
+    month:12, floating:true, region:"west", ll:[12.00,8.52], flag:"🇳🇬 Нигерия · хауса-фульбе", place:"Кано, Кацина, Зария, Сокото",
+    title:"Durbar", local:"Durbar · Hawan Sallah", emoji:"🐎",
+    date:"Плавающая ☾ (в дни Ид, после Рамадана)", duration:"1–2 дня на каждый Ид", season:"смещается по лунному календарю",
+    images:[
+      img("September%202016%20Durbar%20in%20Kano%20-%20Arrival%20of%20the%20Emir.jpg","Прибытие эмира, Дурбар в Кано"),
+      img("The%20Horse%20men%20of%20the%20Sahara.jpg","Всадники Сахеля")
+    ],
+    essence:"Конная процессия эмиратов севера Нигерии в дни Ид. Единственная в своём роде сохранившаяся кавалерийская придворная традиция Западной Африки.",
+    happens:["Сотни всадников в бархате, тюрбанах и кольчугах выезжают отрядами по кварталам.","Кульминация — jahi: галопом лавой к дворцу эмира с резкой остановкой и салютом.","Музыканты с длинными трубами kakaki, барабаны; эмир — под зонтом-балдахином.","Некоторые доспехи и попоны — наследие прошлых веков."],
+    why:"Восходит к военным смотрам кавалерии эмиратов; ныне — праздничное почтение эмиру на Ид аль-Фитр и Ид аль-Адха.",
+    watch:["Конная лава jahi к эмиру","Кони в расшитых попонах","Трубы kakaki","Всадники в доспехах"],
+    prac:{access:["ok","Свободно; у дворца лучше занять место заранее"],guide:["warn","Даты Ид смещаются ~на 11 дней в год — проверять!"],photo:["ok","Свободно"],spots:["","Конная лава, кони в попонах, всадники-доспехи"],crowds:["","Очень многолюдно в Кано"],forwho:["","Живое военно-придворное наследие Сахеля"]},
+    ethno:"Кавалерия как церемония: боевой смотр эмирата, переживший века и превратившийся в праздничное почтение власти."
+  },
+
+  /* ==== ЗАМБИЯ ==== */
+  { month:5, floating:false, region:"south", ll:[-12.17,26.39], flag:"🇿🇲 Замбия · каонде", place:"Солвези, Северо-Запад", title:"Kufukwila", local:"Kufukwila", emoji:"🥁", date:"Май", duration:"1–2 дня", season:"начало сухого сезона", images:[],
+    essence:"Ежегодная церемония народа каонде в Солвези: история переселения, вождество и единство каонде на северо-западе Замбии.",
+    happens:["Процессия вождя в регалиях, королевские барабаны.","Традиционные танцы, обряды благодарения предкам.","Воспроизведение истории и миграции каонде."],
+    why:"Закрепляет идентичность каонде и власть верховного вождя.",
+    watch:["Вход вождя","Барабаны и танцы","Регалии двора"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид помогает с контекстом"],photo:["ok","Свободно"],spots:["","Вождь в регалиях, барабанщики"],crowds:["","В основном местные"],forwho:["","Культура каонде Северо-Запада"]},
+    ethno:"Малоизвестная снаружи «северо-западная» церемония Замбии — детали и точную дату стоит уточнить перед поездкой." },
+
+  { month:5, floating:true, region:"south", ll:[-16.12,23.27], flag:"🇿🇲 Замбия · лози", place:"Сенанга (Нололо)", title:"Kuomboka Nalolo", local:"Kuomboka в Нололо", emoji:"👑", date:"Май · плавающая ☾ (по воде)", duration:"1 день", season:"конец дождей", images:[],
+    essence:"Южный аналог главной Kuomboka: переезд правительницы юга Баротселенда (Litunga-la-Mboela) из затопленной поймы на возвышенность у Сенанге.",
+    happens:["Королевская ладья и гребцы, как в главной Kuomboka.","Флотилия, песни, южный двор лози.","Дата зависит от уровня воды."],
+    why:"Тот же сезонный разлив Замбези, но во втором, южном дворе лози.",
+    watch:["Королевская ладья","Гребцы","Южный двор лози"],
+    prac:{access:["warn","Свободно, но дата плавает по воде"],guide:["warn","Уточнять дату заранее"],photo:["ok","Свободно"],spots:["","Ладья с воды, гребцы"],crowds:["","Местные, туристов мало"],forwho:["","Показывает, что у лози два двора и две Kuomboka"]},
+    ethno:"Редко попадает в путеводители — тень знаменитой северной Kuomboka." },
+
+  { month:6, floating:false, region:"south", ll:[-8.84,31.37], flag:"🇿🇲 Замбия · мамбве, лунгу", place:"Мбала (у оз. Танганьика)", title:"Mutomolo", local:"Mutomolo", emoji:"🌾", date:"Июнь", duration:"1–2 дня", season:"сухой, прохладный", images:[],
+    essence:"Совместная церемония народов мамбве и лунгу на севере Замбии, у озера Танганьика: благодарение и единство приозёрных народов.",
+    happens:["Традиционные танцы и барабаны.","Обряды благодарения, вожди в регалиях.","История расселения мамбве и лунгу."],
+    why:"Единство двух родственных народов севера.",
+    watch:["Вожди и регалии","Танцы","Барабаны"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид желателен"],photo:["ok","Свободно"],spots:["","Танцы, вожди"],crowds:["","Местные"],forwho:["","Приозёрные культуры севера Замбии"]},
+    ethno:"Одна из наименее задокументированных церемоний — уточнять детали и дату." },
+
+  { month:6, floating:false, region:"south", ll:[-13.46,25.83], flag:"🇿🇲 Замбия · каонде", place:"Касемпа", title:"Nsomo", local:"Nsomo", emoji:"🌾", date:"Июнь", duration:"1–2 дня", season:"сухой", images:[],
+    essence:"Церемония каонде в Касемпе, вокруг вождя и истории каонде.",
+    happens:["Процессия вождя, барабаны, танцы.","Обряды благодарения предкам."],
+    why:"Утверждение вождества и идентичности каонде.",
+    watch:["Вождь в регалиях","Барабаны","Танцы"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид желателен"],photo:["ok","Свободно"],spots:["","Вождь, барабанщики"],crowds:["","Местные"],forwho:["","Культура каонде"]},
+    ethno:"Малоизвестная церемония — детали уточнить." },
+
+  { month:7, floating:false, region:"south", ll:[-14.79,24.80], flag:"🇿🇲 Замбия · нкойя", place:"Каома", title:"Kazanga", local:"Kazanga", emoji:"🥁", date:"Июль", duration:"2 дня", season:"сухой, прохладный", images:[],
+    essence:"Одна из старейших церемоний Замбии — народ нкойя в Каоме. Знаменита королевскими барабанами и танцами, утверждает древнее вождество нкойя.",
+    happens:["Процессия вождя нкойя в регалиях.","Королевские барабаны mukupele, танцы makwasha.","Воспроизведение истории царства нкойя."],
+    why:"Культурное самоутверждение нкойя, добивающихся признания своей идентичности.",
+    watch:["Королевские барабаны","Вождь в регалиях","Танцы makwasha"],
+    prac:{access:["ok","Свободно"],guide:["ok","Гид желателен для контекста"],photo:["ok","Свободно"],spots:["","Барабаны, вождь, танцы"],crowds:["","Местные, немного туристов"],forwho:["","Древнее вождество нкойя"]},
+    ethno:"Праздник как политика идентичности: нкойя утверждают себя как отдельный народ со своей историей." },
+
+  { month:7, floating:false, region:"south", ll:[-16.28,27.48], flag:"🇿🇲 Замбия · тонга, тока-лейя", place:"Монзе / Ливингстон / Каломо", title:"Lwiindi", local:"Lwiindi (Гонде)", emoji:"🌧️", date:"Июль (Монзе); также январь и октябрь у др. общин", duration:"1–2 дня", season:"сухой", images:[],
+    essence:"Церемония дождя и благодарения народа тонга (и тока-лейя): обращение к предкам о дожде и урожае. Крупнейшая — Lwiindi Gonde под Монзе.",
+    happens:["Обряды у святилищ предков (malende), жертвы и традиционное пиво.","Танцы, вызывание дождя.","Разные общины проводят Lwiindi в разные месяцы."],
+    why:"Тонга — земледельцы; Lwiindi просит дождь и благодарит за урожай.",
+    watch:["Обряды у святилища","Ритуальное пиво","Танцы тонга"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид помогает с этикетом у святилищ"],photo:["warn","У святилищ — спрашивать"],spots:["","Святилище, танцы"],crowds:["","Местные"],forwho:["","Аграрно-дождевой культ тонга"]},
+    ethno:"Дата «плавает» по общинам (январь/июль/октябрь) — календарь у самих тонга не един." },
+
+  { month:8, floating:false, region:"south", ll:[-10.21,31.18], flag:"🇿🇲 Замбия · бемба", place:"Мунгви, близ Касамы", title:"Ukusefya Pa Ng'wena", local:"Ukusefya Pa Ng'wena", emoji:"🐊", date:"Август", duration:"4 дня", season:"сухой", images:[],
+    essence:"Главная церемония бемба близ Касамы — «переход через реку крокодила»: воспроизведение великой миграции бемба из царства Луба (Конго) вслед за тотемным крокодилом.",
+    happens:["Реконструкция исхода бемба и перехода реки.","Вход верховного вождя Chitimukulu, королевские барабаны.","История клана крокодила (bena ng'andu), танцы."],
+    why:"Увековечивает миграцию бемба и власть Chitimukulu.",
+    watch:["Вход Chitimukulu","Реконструкция миграции","Барабаны"],
+    prac:{access:["ok","Свободно"],guide:["ok","Гид желателен"],photo:["ok","Свободно"],spots:["","Вождь, реконструкция, барабаны"],crowds:["","Местные, немного туристов"],forwho:["","Живая история миграции бемба"]},
+    ethno:"Одна из великих миграционных легенд региона, разыгранная как ритуал — от Луба к плато бемба." },
+
+  { month:8, floating:false, region:"south", ll:[-14.07,32.05], flag:"🇿🇲 Замбия · чева", place:"Катете (двор Gawa Undi)", title:"Kulamba", local:"Kulamba", emoji:"🎭", date:"Август", duration:"1–2 дня", season:"сухой", images:[],
+    essence:"Церемония чева: вожди из Замбии, Малави и Мозамбика воздают почести верховному вождю Kalonga Gawa Undi. Связана с тайным обществом Nyau и танцем масок Gule Wamkulu (наследие ЮНЕСКО).",
+    happens:["Съезд вождей чева трёх стран.","Почтение верховному вождю Gawa Undi.","Маски Nyau / Gule Wamkulu, танцы."],
+    why:"Единство народа чева поверх границ и власть Undi.",
+    watch:["Маски Gule Wamkulu","Съезд вождей","Двор Undi"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид помогает с доступом"],photo:["warn","Маски Nyau — деликатно, спрашивать"],spots:["","Маски, съезд вождей"],crowds:["","Тысячи, вожди из 3 стран"],forwho:["","Масочное общество чева"]},
+    ethno:"Gule Wamkulu — шедевр устного наследия ЮНЕСКО; редкий доступ к тайному обществу Nyau." },
+
+  { month:8, floating:false, region:"south", ll:[-13.54,23.11], flag:"🇿🇲 Замбия · лувале", place:"Мизе, близ г. Замбези", title:"Likumbi Lya Mize", local:"Likumbi Lya Mize", emoji:"🎭", date:"Конец августа", duration:"несколько дней", season:"сухой", images:[],
+    essence:"Главная церемония лувале у вождя Ndungu в Мизе. Знаменита масками Makishi (духи предков) и связью с обрядом мужской инициации mukanda.",
+    happens:["Выход масок Makishi (Chikuza, Mupala, женская Pwevo).","Танцы, королевский двор лувале.","Связь с обрядом инициации mukanda (сам обряд закрыт)."],
+    why:"Инициация мальчиков и власть вождя лувале; маски — духи предков.",
+    watch:["Маски Makishi","Танец Pwevo","Королевский двор"],
+    prac:{access:["ok","Свободно на публичной части"],guide:["warn","Гид желателен"],photo:["ok","Свободно (mukanda закрыт)"],spots:["","Makishi в движении, двор"],crowds:["","Местные, немного туристов"],forwho:["","Маски чокве-лувале на стыке трёх стран"]},
+    ethno:"Makishi роднят Замбию с Анголой и Конго — одна культура, разрезанная границами." },
+
+  { month:9, floating:false, region:"south", ll:[-13.62,29.39], flag:"🇿🇲 Замбия · биса, свака, лала", place:"Мкуши", title:"Inchibwela Mushi", local:"Inchibwela Mushi", emoji:"🌾", date:"Сентябрь", duration:"1–2 дня", season:"сухой", images:[],
+    essence:"Церемония народов биса, свака и лала в Мкуши (центральная Замбия): почтение предкам и благодарение.",
+    happens:["Обряды у мест предков, традиционное пиво.","Танцы, барабаны, вожди."],
+    why:"Связь с предками и землёй центральной Замбии.",
+    watch:["Обряды предков","Танцы","Вожди"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид желателен"],photo:["ok","Свободно"],spots:["","Обряды, танцы"],crowds:["","Местные"],forwho:["","Культуры центрального плато"]},
+    ethno:"Малоизвестная церемония — детали уточнить." },
+
+  { month:9, floating:true, region:"south", ll:[-15.75,26.44], flag:"🇿🇲 Замбия · ила", place:"Равнины Кафуэ (Маала/Намвала)", title:"Shimunenga", local:"Shimunenga", emoji:"🐂", date:"Сентябрь–октябрь · выходные полнолуния ☾", duration:"выходные", season:"сухой", images:[],
+    essence:"Церемония народа ила на равнинах Кафуэ в честь предка-героя Shimunenga. Кульминация — массовый прогон стад скота через пойму.",
+    happens:["Тысячи голов скота гонят через равнину/реку.","Обряды у святилища Shimunenga.","Танцы; ила — скотоводы."],
+    why:"Почтение предку Shimunenga и утверждение скотоводческой культуры ила.",
+    watch:["Прогон стад через пойму","Святилище","Скотоводы"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид помогает найти место и время"],photo:["ok","Свободно"],spots:["","Стада в движении, всадники, святилище"],crowds:["","Местные скотоводы"],forwho:["","Редкий скотоводческий обряд Юга Африки"]},
+    ethno:"Дата привязана к полнолунию — «плавает» по луне; редкое зрелище массового перегона стад." },
+
+  /* ==== ПАПУА — НОВАЯ ГВИНЕЯ ==== */
+  { month:4, floating:true, region:"oceania", ll:[-9.44,147.18], flag:"🇵🇬 ПНГ · моту-коита", place:"Порт-Морсби", title:"Hiri Moale", local:"Hiri Moale Festival", emoji:"🛶", date:"Апрель (даты шоу ПНГ смещаются — уточнять)", duration:"2–3 дня", season:"—", images:[],
+    essence:"Праздник народа моту в Порт-Морсби в память о торговых плаваниях Hiri — экспедициях на парусных каноэ lakatoi за глиняной посудой и саго вдоль залива Папуа.",
+    happens:["Парад и гонки каноэ lakatoi.","Конкурс красоты/наряда Hiri Hanenamo.","Танцы и пение моту-коита."],
+    why:"Увековечивает древнюю морскую торговую сеть Hiri.",
+    watch:["Парусные каноэ lakatoi","Наряды Hiri Hanenamo","Танцы"],
+    prac:{access:["ok","Свободно/по билету"],guide:["ok","Город, доступно"],photo:["ok","Свободно"],spots:["","Каноэ, наряды, танцы"],crowds:["","Городская публика"],forwho:["","Память о доколониальной морской торговле"]},
+    ethno:"Редкий фестиваль про торговую цивилизацию моря, а не про воинов нагорья." },
+
+  { month:7, floating:false, region:"oceania", ll:[-4.35,152.26], flag:"🇵🇬 ПНГ · толай, байнинг", place:"Кокопо/Рабаул, Вост. Новая Британия", title:"Mask & Warwagira", local:"National Mask & Warwagira Festival", emoji:"🎭", date:"Июль", duration:"несколько дней", season:"—", images:[],
+    essence:"Фестиваль масок в Кокопо, где встречаются очень разные масочные традиции островов — толай и байнинг.",
+    happens:["Ночной огненный танец байнинг: огромные маски из коры, прыжки через костёр.","Маски дукдук и тубуан толай (тайное общество).","Парады и танцы."],
+    why:"Смотр масочных обществ островного региона.",
+    watch:["Огненный танец байнинг","Дукдук/тубуан толай","Ночные выходы масок"],
+    prac:{access:["ok","Свободно/по билету"],guide:["warn","Тур упрощает логистику"],photo:["warn","Тубуан — тайное общество, деликатно"],spots:["","Огонь и маски ночью"],crowds:["","Местные + туристы"],forwho:["","Два мира масок: огонь байнинг и тубуан толай"]},
+    ethno:"Огненный танец байнинг — один из самых зрелищных масочных обрядов планеты." },
+
+  { month:8, floating:false, region:"oceania", ll:[-5.49,143.72], flag:"🇵🇬 ПНГ · энга", place:"Вабаг, пров. Энга", title:"Enga Show", local:"Enga Cultural Show", emoji:"🪶", date:"Август", duration:"2 дня", season:"—", images:[],
+    essence:"Культурный смотр провинции Энга — sing-sing групп высокогорья, известен париками и танцами.",
+    happens:["Sing-sing групп в полном убранстве.","Парики, перья, охра.","Демонстрация культуры энга."],
+    why:"Смотр идентичности одной из самых населённых горных провинций.",
+    watch:["Sing-sing","Парики и уборы","Портреты"],
+    prac:{access:["ok","По билету"],guide:["warn","Тур упрощает жильё"],photo:["ok","Свободно"],spots:["","Портреты, ряды в уборах"],crowds:["","Местные + немного туристов"],forwho:["","Менее туристический sing-sing"]},
+    ethno:"Тише Гароки и Хагена — ближе к «домашнему» смотру." },
+
+  { month:8, floating:false, region:"oceania", ll:[-5.86,144.23], flag:"🇵🇬 ПНГ · горные племена", place:"Маунт-Хаген, Зап. нагорье", title:"Hagen Show", local:"Mount Hagen Show", emoji:"🪶", date:"Август", duration:"2 дня", season:"сухой", images:[],
+    essence:"Наряду с Гарокой — крупнейший sing-sing нагорья: десятки племён Западного нагорья в полном церемониальном убранстве.",
+    happens:["Sing-sing десятков групп.","Перья райских птиц, ракушки, глина, охра.","Huli wigmen, мелпа и др."],
+    why:"Главный смотр Западного нагорья; часто считается аутентичнее туристической Гароки.",
+    watch:["Huli wigmen","Ряды в уборах","Портреты крупно"],
+    prac:{access:["ok","По билету"],guide:["ok","Тур упрощает логистику"],photo:["ok","Свободно, рай для портретов"],spots:["","Портреты, Huli wigmen"],crowds:["","Туристы + местные"],forwho:["","Вторая великая сцена меланезийской этнографии"]},
+    ethno:"Вместе с Гарокой — две главные «съёмочные площадки» нагорья; Хаген слывёт менее постановочным." },
+
+  { month:9, floating:false, region:"oceania", ll:[-6.42,143.30], flag:"🇵🇬 ПНГ · народы юга нагорья", place:"Озеро Кутубу, Юж. нагорье", title:"Kutubu Festival", local:"Kutubu Kundu & Digaso Festival", emoji:"🛶", date:"Сентябрь", duration:"2 дня", season:"—", images:[],
+    essence:"Экокультурный фестиваль у озера Кутубу — каноэ, барабаны kundu и масло дерева digaso; народы юга нагорья.",
+    happens:["Каноэ по озеру, sing-sing.","Барабаны kundu, обмен, эко-акцент.","Демонстрация локальных культур."],
+    why:"Сохранение культуры и природы озёрного края.",
+    watch:["Каноэ на озере","Барабаны kundu","Танцы"],
+    prac:{access:["ok","По билету"],guide:["no","Логистика сложная, лучше тур"],photo:["ok","Свободно"],spots:["","Каноэ, озеро, танцы"],crowds:["","Мало туристов"],forwho:["","Тихий фестиваль у красивейшего озера"]},
+    ethno:"Один из самых живописных и малолюдных фестивалей ПНГ." },
+
+  { month:10, floating:false, region:"oceania", ll:[-6.73,146.99], flag:"🇵🇬 ПНГ · народы Моробе", place:"Лаэ, пров. Моробе", title:"Morobe Show", local:"Morobe Show", emoji:"🪶", date:"Октябрь", duration:"2 дня", season:"—", images:[],
+    essence:"Крупный сельскохозяйственно-культурный смотр в Лаэ — sing-sing групп побережья и нагорья Моробе.",
+    happens:["Sing-sing прибрежных и горных групп.","Сельхозвыставка, ремёсла.","Танцы и убранство."],
+    why:"Смотр разнообразия провинции Моробе.",
+    watch:["Sing-sing","Убранство","Ремёсла"],
+    prac:{access:["ok","По билету"],guide:["ok","Город, доступно"],photo:["ok","Свободно"],spots:["","Портреты, группы"],crowds:["","Местные + туристы"],forwho:["","Побережье и нагорье в одном месте"]},
+    ethno:"Смесь агровыставки и этнографического смотра." },
+
+  { month:11, floating:false, region:"oceania", ll:[-10.31,150.44], flag:"🇵🇬 ПНГ · народы Массим", place:"Алотау, залив Милн", title:"Kenu & Kundu", local:"Kenu & Kundu Festival", emoji:"🛶", date:"Ноябрь", duration:"2–3 дня", season:"—", images:[],
+    essence:"Морской фестиваль в Алотау — гонки церемониальных и боевых каноэ (kenu), барабаны kundu, культура островов Массим и Тробриан.",
+    happens:["Гонки каноэ, военные каноэ с резьбой.","Барабаны kundu, танцы островов.","Отголоски обменной системы kula."],
+    why:"Смотр морской культуры залива Милн.",
+    watch:["Гонки каноэ","Резные носы каноэ","Танцы островов"],
+    prac:{access:["ok","По билету"],guide:["ok","Доступно из Алотау"],photo:["ok","Свободно"],spots:["","Каноэ в движении, резьба, танцы"],crowds:["","Местные + туристы"],forwho:["","Морская культура Массим и мир kula"]},
+    ethno:"Регион знаменитого кольца обмена kula — морская, а не «горная» ПНГ." },
+
+  /* ==== АНГОЛА ==== */
+  { month:7, floating:false, region:"central", ll:[-11.90,22.90], flag:"🇦🇴 Ангола · лувале (лвена)", place:"Казомбо, Мошико", title:"Фестиваль лувале", local:"Festa Luvale, Cazombo", emoji:"🎭", date:"Июль", duration:"несколько дней", season:"сухой", images:[],
+    essence:"Церемония лувале на востоке Анголы — родня замбийской Likumbi Lya Mize: маски Makishi и инициация mukanda по ангольскую сторону границы.",
+    happens:["Маски Makishi, танцы.","Инициация мальчиков (mukanda).","Королевский двор лувале."],
+    why:"Идентичность лувале и обряд инициации; маски — духи предков.",
+    watch:["Маски Makishi","Танцы","Двор лувале"],
+    prac:{access:["warn","Свободно, но восток Анголы — сложная логистика"],guide:["no","Лучше с оператором"],photo:["ok","Свободно на публичной части"],spots:["","Makishi, танцы"],crowds:["","Мало туристов"],forwho:["","Та же лувале-культура, что в Замбии, но в Анголе"]},
+    ethno:"Наглядно показывает, как один народ (лувале/чокве) живёт по обе стороны границы Ангола–Замбия." },
+
+  { month:2, floating:true, region:"central", ll:[-8.84,13.23], flag:"🇦🇴 Ангола · многонациональный", place:"Луанда (набережная Marginal)", title:"Карнавал Луанды", local:"Carnaval de Luanda", emoji:"🎉", date:"Февраль · вторник перед Пепельной средой ☾", duration:"неделя", season:"—", images:[],
+    essence:"Пышный ангольский карнавал, особенно в Луанде: парады конкурирующих групп, семба и кудуру, костюмы — своя, а не бразильская, традиция.",
+    happens:["Парады групп (grupos carnavalescos) на набережной Marginal.","Семба, кудуру, костюмы, соревнование групп.","Афро-португальский синкретизм и мотивы независимости."],
+    why:"Португальский карнавал, переплавленный ангольской музыкой и историей.",
+    watch:["Парад на Marginal","Костюмы","Семба и кудуру"],
+    prac:{access:["ok","Свободно"],guide:["ok","Город, доступно"],photo:["ok","Свободно"],spots:["","Парад, костюмы, набережная"],crowds:["","Массовое городское событие"],forwho:["","Ангольская карнавальная идентичность"]},
+    ethno:"Карнавал как национальная идентичность: не калька Рио, а собственная семба-традиция." },
+
+  /* ==== БЕНИН ==== */
+  { month:12, floating:false, region:"west", ll:[9.94,3.21], flag:"🇧🇯 Бенин · бариба (батомбу)", place:"Никки / Параку (север)", title:"Gaani", local:"Gaani", emoji:"🐎", date:"Декабрь", duration:"несколько дней", season:"сухой, харматтан", images:[],
+    essence:"Праздник бариба на севере Бенина, особенно в Никки: конные парады знати, история царства Бариба, ислам и традиция вместе.",
+    happens:["Конные всадники знати в наряде.","Барабаны, история династии Бариба.","Показ верховой аристократии — перекличка с нигерийским Дурбаром."],
+    why:"Утверждение царства Бариба и его конной знати; приурочен к мусульманскому празднику.",
+    watch:["Всадники бариба","Барабаны","Знать в наряде"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид помогает с доступом ко двору"],photo:["ok","Свободно"],spots:["","Конные всадники, барабаны"],crowds:["","Местные, немного туристов"],forwho:["","Конная сахельская традиция севера Бенина"]},
+    ethno:"Родня нигерийскому Дурбару: та же сахельская конная аристократия, но у бариба." },
+
+  /* ==== КАМЕРУН ==== */
+  { month:12, floating:true, region:"central", ll:[5.72,10.90], flag:"🇨🇲 Камерун · бамум", place:"Фумбан", title:"Nguon", local:"Nguon", emoji:"👑", date:"Декабрь · раз в 2 года", duration:"несколько дней", season:"—", images:[],
+    essence:"Древняя (>500 лет) церемония бамум в Фумбане, где народ публично «судит» султана (Mfon) — редкий африканский институт подотчётности власти. С 2023 — в списке ЮНЕСКО.",
+    happens:["Народ высказывает султану претензии, султан отвечает.","Процессии, танцы, регалии двора бамум.","История и обновление договора власти и народа."],
+    why:"Механизм диалога между правителем и подданными бамум.",
+    watch:["«Суд» над султаном","Двор бамум","Регалии и барабаны"],
+    prac:{access:["ok","Свободно/публично"],guide:["warn","Гид помогает понять ритуал"],photo:["ok","Свободно"],spots:["","Султан, двор, процессия"],crowds:["","Тысячи бамум"],forwho:["","Уникальный ритуал подотчётности монарха"]},
+    ethno:"Этнографическая жемчужина: власть, которую народ публично призывает к ответу, — и это признано ЮНЕСКО." },
+
+  { month:2, floating:false, region:"central", ll:[5.48,10.42], flag:"🇨🇲 Камерун · бамилеке", place:"Западные нагорья", title:"Nyem-Nyem", local:"Nyem-Nyem", emoji:"🎨", date:"Февраль", duration:"1–2 дня", season:"—", images:[],
+    essence:"Цветной фестиваль в области бамилеке: по описанию — окраска тела в голубые и другие цвета, много инициаций.",
+    happens:["Окраска тел, танцы.","Обряды инициации.","Массовое цветное шествие."],
+    why:"Инициации и коллективная идентичность бамилеке.",
+    watch:["Цветная раскраска","Инициации","Танцы"],
+    prac:{access:["warn","Уточнять доступ и место"],guide:["warn","Гид желателен"],photo:["warn","Спрашивать на инициациях"],spots:["","Цветные тела, танцы"],crowds:["","Местные"],forwho:["","Цветная обрядность нагорий Камеруна"]},
+    ethno:"Детали и точное место требуют проверки — фестиваль слабо задокументирован снаружи." },
+
+  { month:11, floating:false, region:"central", ll:[4.05,9.70], flag:"🇨🇲 Камерун · сава (дуала)", place:"Дуала, река Wouri", title:"Ngondo", local:"Ngondo (Ndongo)", emoji:"💧", date:"Конец ноября — начало декабря", duration:"несколько дней", season:"—", images:[],
+    essence:"Водный фестиваль народов сава (дуала и родственные) в Дуале, посвящённый духам воды miengu реки Wouri.",
+    happens:["Главный обряд: ныряльщик приносит из реки священный сосуд с посланием предков-духов воды.","Гонки расписных пирог, борьба, танцы.","Ритуалы вождества сава."],
+    why:"Связь прибрежных народов сава с водной стихией и предками.",
+    watch:["Обряд с сосудом из реки","Гонки пирог","Ритуалы у воды"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид помогает с контекстом"],photo:["ok","Свободно у воды"],spots:["","Ныряльщик и сосуд, пироги, толпа"],crowds:["","Массовое городское событие"],forwho:["","Приморский культ водных духов miengu"]},
+    ethno:"Морская параллель речным культам Западной Африки: духи воды как ось идентичности сава." },
+
+  /* ==== НИГЕРИЯ ==== */
+  { month:12, floating:false, region:"west", ll:[4.98,8.34], flag:"🇳🇬 Нигерия · Кросс-Ривер", place:"Калабар", title:"Calabar Carnival", local:"Calabar Carnival", emoji:"🎉", date:"Декабрь (весь месяц)", duration:"месяц, кульминация в конце декабря", season:"—", images:[],
+    essence:"«Крупнейший уличный праздник Африки»: месяц карнавала в Калабаре с гигантскими парадами конкурирующих бэндов, костюмами и музыкой.",
+    happens:["Парады бэндов (Passion 4, Seagull, Bayside и др.).","Костюмы, афробит и хайлайф, сотни тысяч зрителей.","Конкурс между бэндами."],
+    why:"Современный фестиваль (с 2004) — туристический бренд штата Кросс-Ривер, с корнями в масках региона.",
+    watch:["Парадные бэнды","Костюмы","Уличная сцена"],
+    prac:{access:["ok","Свободно"],guide:["ok","Город, доступно"],photo:["ok","Свободно"],spots:["","Костюмы, парад, толпа"],crowds:["","Сотни тысяч"],forwho:["","Пример «сконструированного» современного карнавала"]},
+    ethno:"Контраст к древним обрядам: интересно смотреть как культурную инженерию и брендинг штата." },
+
+  { month:10, floating:false, region:"west", ll:[6.52,3.37], flag:"🇳🇬 Нигерия · Лагос", place:"New Afrika Shrine, Лагос", title:"Felabration", local:"Felabration", emoji:"🎷", date:"Октябрь (неделя вокруг дня рождения Фелы)", duration:"~неделя", season:"—", images:[],
+    essence:"Ежегодный музыкальный фестиваль памяти Фелы Кути в его «New Afrika Shrine» в Лагосе — афробит, поэзия, дискуссии.",
+    happens:["Концерты афробита на сцене Shrine.","Дебаты, поэзия, шествие.","Чествование политического наследия Фелы."],
+    why:"Память о легенде афробита и его борьбе.",
+    watch:["Сцена Shrine","Музыканты","Атмосфера Лагоса"],
+    prac:{access:["ok","Свободно/по билету"],guide:["ok","Город, доступно"],photo:["ok","Свободно"],spots:["","Сцена, толпа, музыканты"],crowds:["","Большие"],forwho:["","Современная музыкально-политическая культура Лагоса"]},
+    ethno:"Не этнография в классическом смысле, но важный срез живой лагосской идентичности." },
+
+  { month:2, floating:true, region:"west", ll:[12.75,4.52], flag:"🇳🇬 Нигерия · хауса-кебби", place:"Аргунгу, р. Матан-Фада", title:"Argungu Fishing", local:"Argungu Fishing Festival", emoji:"🐟", date:"Февраль–март ☾", duration:"несколько дней", season:"—", images:[],
+    essence:"Зрелищное состязание рыбаков на реке Матан-Фада: по сигналу тысячи мужчин с сетями-калебасами бросаются в воду ловить самую большую рыбу руками.",
+    happens:["Массовый заплыв рыбаков разом.","Ловля руками и сетями, гонки на калебасах.","Кульминация — самая большая рыба."],
+    why:"Восходит к 1934 г. как знак мира между Сокото и Кебби; ныне культурный бренд севера.",
+    watch:["Тысячи рыбаков в воде","Гигантская рыба","Калебасы и сети"],
+    prac:{access:["ok","Свободно"],guide:["warn","Проверять проведение — отменялся по безопасности"],photo:["ok","Свободно"],spots:["","Река, кишащая рыбаками; улов"],crowds:["","Огромные"],forwho:["","Массовое зрелище хауса-кебби"]},
+    ethno:"Проводится не каждый год (безопасность, экология реки) — уточнять заранее." },
+
+  { month:5, floating:true, region:"west", ll:[6.45,3.39], flag:"🇳🇬 Нигерия · йоруба (Лагос)", place:"Остров Лагос", title:"Eyo Festival", local:"Eyo (Adamu Orisha Play)", emoji:"🎭", date:"Нерегулярно, по особым случаям ☾", duration:"1 день", season:"—", images:[],
+    essence:"Парад Эйо на острове Лагос: процессия духов-масок Adamu Orisha в белых балахонах и широких шляпах, с посохами, в честь знатных умерших. Считается предком карнавалов Нового Света.",
+    happens:["Улицы заполняют белые фигуры Эйо разных групп.","Строгий этикет: без обуви и головных уборов рядом.","Ритуальные приветствия и шествие."],
+    why:"Почтение усопших обба и вождей, культ Adamu Orisha.",
+    watch:["Белые балахоны Эйо","Посохи opambata","Ритуальная толпа"],
+    prac:{access:["ok","Свободно, но проводится редко"],guide:["warn","Ловить объявление о дате заранее"],photo:["warn","Соблюдать ритуальный этикет"],spots:["","Белые фигуры на улицах острова"],crowds:["","Весь Лагос-Айленд"],forwho:["","Живой предок карибских/бразильских масок"]},
+    ethno:"Нет фиксированной даты — устраивают по особым поводам; «поймать» Эйо — большая удача." },
+
+  { month:10, floating:true, region:"west", ll:[6.52,7.51], flag:"🇳🇬 Нигерия · игбо", place:"Юго-восток (по общинам)", title:"New Yam (Iri Ji)", local:"New Yam Festival — Iri Ji", emoji:"🍠", date:"Конец августа — октябрь (по общинам) ☾", duration:"1–2 дня", season:"—", images:[],
+    essence:"Праздник нового ямса игбо: до него старый ямс не едят. Старейшина/вождь первым вкушает новый ямс, открывая новый сельхозгод.",
+    happens:["Ритуальное вкушение первого ямса старейшиной.","Маскарады mmanwu, танцы, ярмарка.","Благодарение земле и предкам."],
+    why:"Ямс — «король культур» у игбо; праздник открывает год.",
+    watch:["Церемония первого ямса","Маски mmanwu","Танцы"],
+    prac:{access:["ok","Свободно"],guide:["warn","Дата и место — по общине"],photo:["ok","Свободно (маски — деликатно)"],spots:["","Ямс, маски mmanwu, танцы"],crowds:["","По деревне/городу"],forwho:["","Центральный аграрный ритуал игбо"]},
+    ethno:"Один праздник, десятки локальных дат — отсюда «плавающий» календарь по общинам." },
+
+  { month:7, floating:true, region:"west", ll:[5.82,8.08], flag:"🇳🇬 Нигерия · якурр", place:"Угеп, Кросс-Ривер", title:"Leboku", local:"Leboku (New Yam)", emoji:"🍠", date:"Июль–август ☾", duration:"несколько дней", season:"—", images:[],
+    essence:"Праздник нового ямса Leboku народа якурр в Угепе — благодарение богине земли за урожай, с обрядами плодородия и девичьими танцами.",
+    happens:["Ритуалы у святилищ, вкушение нового ямса.","Танцы девушек (leboku), борьба.","Ярмарка и обряды плодородия."],
+    why:"Благодарение земле у якурр Кросс-Ривера.",
+    watch:["Девичьи танцы","Ритуалы ямса","Борьба"],
+    prac:{access:["ok","Свободно"],guide:["warn","Гид желателен"],photo:["ok","Свободно"],spots:["","Танцы, ямс, святилища"],crowds:["","Местные, немного гостей"],forwho:["","Самобытный ямс-фестиваль (не игбо, не йоруба)"]},
+    ethno:"Показывает, что «новый ямс» — не только игбо: у якурр он свой, со своей богиней земли." }
+];
+
+let state = {month:null, region:null};
+
+/* ---- карточки списка ---- */
+function chipEl(label, active, on, dot){
+  const b=document.createElement("button");
+  b.className="chip"; b.setAttribute("aria-pressed",active?"true":"false");
+  b.innerHTML=(dot?`<span class="rdot" style="background:${dot}"></span>`:"")+label;
+  b.onclick=on; return b;
+}
+function buildFilters(){
+  const fm=document.getElementById("f-month"); fm.innerHTML="";
+  MONTHS.forEach((m,i)=>fm.appendChild(chipEl(m, state.month===i+1, ()=>{state.month=state.month===i+1?null:i+1; renderList();})));
+  const fr=document.getElementById("f-region"); fr.innerHTML="";
+  Object.keys(REGIONS).forEach(k=>fr.appendChild(chipEl(REGIONS[k].name, state.region===k, ()=>{state.region=state.region===k?null:k; renderList();}, cssv(REGIONS[k].v))));
+}
+function renderList(){
+  buildFilters();
+  const list=document.getElementById("list");
+  let rows=DATA.map((d,i)=>({d,i})).filter(({d})=>(state.month===null||d.month===state.month)&&(state.region===null||d.region===state.region))
+               .sort((a,b)=>a.d.month-b.d.month);
+  document.getElementById("count").textContent=rows.length+" из "+DATA.length;
+  if(!rows.length){ list.innerHTML=`<p class="empty">В этом срезе праздников пока нет — попробуй другой месяц или регион.</p>`; return; }
+  let html="", cur=null;
+  rows.forEach(({d,i},idx)=>{
+    if(d.month!==cur){ if(cur!==null) html+=`</div>`; cur=d.month;
+      html+=`<div class="month-block"><div class="node"><span></span></div><p class="month-name">${MONTHS[d.month-1]}</p>`; }
+    const ac=cssv(REGIONS[d.region].v);
+    const thumb = d.images[0] ? `style="background-image:url('${d.images[0].u}')"` : `style="background:${ac}"`;
+    html+=`<article class="card" style="--accent:${ac}" tabindex="0" role="button"
+              onclick="openDetail(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail(${i})}">
+        <div class="thumb" ${thumb}>${d.images[0]?"":`<span class="em">${d.emoji}</span>`}</div>
+        <div class="card-body">
+          <p class="card-flag">${d.flag}</p>
+          <h3 class="card-title">${d.title}</h3>
+          <p class="card-date">${d.date.replace("☾",'<span class="moon">☾</span>')}</p>
+          <span class="card-open">Открыть →</span>
+        </div>
+      </article>`;
+    if(idx===rows.length-1) html+=`</div>`;
+  });
+  list.innerHTML=html;
+}
+
+/* ---- колесо года ---- */
+function buildWheel(){
+  const cx=200, cy=200, rLabel=178, rOuter=160, rInner=70, rDot=128;
+  const NS="http://www.w3.org/2000/svg";
+  let s="";
+  // кольца
+  s+=`<circle cx="${cx}" cy="${cy}" r="${rOuter}" fill="none" stroke="${cssv('--line')}" stroke-width="1"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${rInner}" fill="none" stroke="${cssv('--line')}" stroke-width="1"/>`;
+  // спицы + подписи месяцев
+  for(let m=0;m<12;m++){
+    const bDeg=-90+m*30, bRad=bDeg*Math.PI/180;
+    s+=`<line x1="${cx+rInner*Math.cos(bRad)}" y1="${cy+rInner*Math.sin(bRad)}" x2="${cx+rOuter*Math.cos(bRad)}" y2="${cy+rOuter*Math.sin(bRad)}" stroke="${cssv('--line')}" stroke-width="1"/>`;
+    const cDeg=-90+m*30+15, cRad=cDeg*Math.PI/180;
+    s+=`<text class="mlabel" x="${cx+rLabel*Math.cos(cRad)}" y="${cy+rLabel*Math.sin(cRad)}" text-anchor="middle" dominant-baseline="middle">${MON3[m]}</text>`;
+  }
+  s+=`<text class="center-l" x="${cx}" y="${cy-6}" text-anchor="middle">ГОД В</text>`;
+  s+=`<text class="center-l" x="${cx}" y="${cy+8}" text-anchor="middle">РИТУАЛАХ</text>`;
+  // точки фестивалей
+  const byMonth={};
+  DATA.forEach((d,i)=>{(byMonth[d.month]=byMonth[d.month]||[]).push(i)});
+  Object.keys(byMonth).forEach(m=>{
+    const arr=byMonth[m], k=arr.length;
+    const step = k>1 ? Math.min(9, 24/(k-1)) : 0;   // угловой разброс сжимается, если фестивалей много
+    arr.forEach((id,idx)=>{
+      const d=DATA[id];
+      const deg=-90+(m-1)*30+15+(idx-(k-1)/2)*step;
+      const rad=deg*Math.PI/180;
+      const r=rDot-(idx%2)*15;                        // чередуем радиус, чтобы соседние не слипались
+      const x=cx+r*Math.cos(rad), y=cy+r*Math.sin(rad);
+      const c=cssv(REGIONS[d.region].v);
+      s+=`<circle class="dot" cx="${x}" cy="${y}" r="6.5" fill="${c}" stroke="${cssv('--ink')}" stroke-width="1.8" onclick="openDetail(${id})"><title>${d.title} — ${d.date}</title></circle>`;
+    });
+  });
+  document.getElementById("wheel").innerHTML=s;
+  // легенда
+  const leg=document.getElementById("legend");
+  leg.innerHTML=Object.keys(REGIONS).map(k=>`<span><i style="background:${cssv(REGIONS[k].v)}"></i>${REGIONS[k].name}</span>`).join("");
+}
+
+/* ---- карта ---- */
+let map, mapInited=false;
+function initMap(){
+  if(mapInited||typeof L==="undefined") return; mapInited=true;
+  map=L.map('map',{scrollWheelZoom:false,attributionControl:true}).setView([2,60],2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© OpenStreetMap'}).addTo(map);
+  const pts=[];
+  DATA.forEach((d,i)=>{
+    if(!d.ll) return;
+    const mk=L.circleMarker(d.ll,{radius:9,color:cssv('--ink'),weight:2,fillColor:cssv(REGIONS[d.region].v),fillOpacity:1});
+    mk.addTo(map); mk.on('click',()=>openDetail(i));
+    mk.bindTooltip(d.title+' · '+d.date,{direction:'top'});
+    pts.push(d.ll);
+  });
+  if(pts.length) map.fitBounds(pts,{padding:[36,36]});
+  setTimeout(()=>map.invalidateSize(),200);
+}
+
+/* ---- переключатель видов ---- */
+function setView(v){
+  document.querySelectorAll(".vbtn").forEach(b=>b.setAttribute("aria-selected", b.dataset.view===v?"true":"false"));
+  document.getElementById("view-list").classList.toggle("on",v==="list");
+  document.getElementById("view-wheel").classList.toggle("on",v==="wheel");
+  document.getElementById("view-map").classList.toggle("on",v==="map");
+  if(v==="map"){ initMap(); if(map) setTimeout(()=>map.invalidateSize(),120); }
+}
+document.querySelectorAll(".vbtn").forEach(b=>b.onclick=()=>setView(b.dataset.view));
+
+/* ---- детальная страница ---- */
+function lvlDot(l){ return l?`<span class="lvl ${l}"></span>`:""; }
+function shot(im){
+  return `<div class="shot"><img src="${im.u}" data-full="${im.full}" alt="${im.c}" loading="lazy" onerror="if(this.dataset.full){this.src=this.dataset.full;this.removeAttribute('data-full');}else{this.remove();}"><span class="cap">📷 ${im.c}</span></div>`;
+}
+function openDetail(id){
+  const d=DATA[id]; const ac=cssv(REGIONS[d.region].v);
+  const gallery=d.images.map(shot).join("");
+  const srcs=d.images.map((im,n)=>`<a href="${im.src}" target="_blank" rel="noopener">фото ${n+1}</a>`).join(" · ");
+  const p=d.prac;
+  document.getElementById("d-content").innerHTML=`
+    <p class="d-flag" style="color:${ac}">${d.flag}</p>
+    <h2 class="d-title">${d.title}</h2>
+    <p class="d-local">${d.local}</p>
+    <div class="d-facts">
+      <span class="fact"><b>Когда:</b> ${d.date.replace("☾",'<span class="moon">☾</span>')}</span>
+      <span class="fact"><b>Где:</b> ${d.place}</span>
+      <span class="fact"><b>Длится:</b> ${d.duration}</span>
+      <span class="fact"><b>Сезон:</b> ${d.season}</span>
+    </div>
+    <div class="gallery">${gallery}</div>
+    <section class="blk" style="--accent:${ac}"><p class="blk-eye">Что это</p><p>${d.essence}</p></section>
+    <section class="blk" style="--accent:${ac}"><p class="blk-eye">Что происходит</p><ul>${d.happens.map(x=>`<li>${x}</li>`).join("")}</ul></section>
+    <section class="blk" style="--accent:${ac}"><p class="blk-eye">Откуда обычай</p><p>${d.why}</p></section>
+    <section class="blk" style="--accent:${ac}"><p class="blk-eye">Что и кого снимать</p><ul>${d.watch.map(x=>`<li>${x}</li>`).join("")}</ul></section>
+    <section class="blk" style="--accent:${ac}"><p class="blk-eye">Практика</p>
+      <dl class="prac">
+        <div class="cell"><dt>Доступ</dt><dd>${lvlDot(p.access[0])}${p.access[1]}</dd></div>
+        <div class="cell"><dt>Гид / пермит</dt><dd>${lvlDot(p.guide[0])}${p.guide[1]}</dd></div>
+        <div class="cell"><dt>Съёмка</dt><dd>${lvlDot(p.photo[0])}${p.photo[1]}</dd></div>
+        <div class="cell"><dt>Лучшие кадры</dt><dd>${p.spots[1]}</dd></div>
+        <div class="cell"><dt>Толпы</dt><dd>${p.crowds[1]}</dd></div>
+        <div class="cell"><dt>Для кого</dt><dd>${p.forwho[1]}</dd></div>
+      </dl>
+    </section>
+    <div class="ethno" style="--accent:${ac}"><p class="blk-eye">Этнографическая заметка</p><p>${d.ethno}</p></div>
+    <p class="credit">Фото: Wikimedia Commons (${srcs}) — CC BY / CC BY-SA</p>
+  `;
+  document.getElementById("d-region").innerHTML=`<span class="rdot" style="background:${ac}"></span>${REGIONS[d.region].name}`;
+  const dt=document.getElementById("detail");
+  dt.classList.add("open"); dt.scrollTop=0; document.body.style.overflow="hidden";
+  document.getElementById("back").focus();
+  if(location.hash!=="#f"+id) history.pushState({id},"", "#f"+id);
+}
+function closeDetail(fromPop){
+  document.getElementById("detail").classList.remove("open"); document.body.style.overflow="";
+  if(!fromPop && location.hash) history.pushState({},"", location.pathname);
+}
+document.getElementById("back").onclick=()=>{ if(history.state&&history.state.id!=null) history.back(); else closeDetail(); };
+window.addEventListener("popstate",e=>{ if(e.state&&e.state.id!=null) openDetail(e.state.id); else closeDetail(true); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&document.getElementById("detail").classList.contains("open")) history.back(); });
+document.getElementById("reset").onclick=()=>{ state={month:null,region:null}; renderList(); };
+
+renderList();
+buildWheel();
+</script>
+</body>
+</html>
